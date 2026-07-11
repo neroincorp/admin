@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Visitor Admin</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    background: #0a0a0a;
+    color: white;
+    padding: 40px 20px;
+}
+
+h1 {
+    font-size: 1.6rem;
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 30px;
+    font-size: 0.9rem;
+}
+
+/* Password gate */
+#gate {
+    max-width: 340px;
+    margin: 15vh auto;
+    text-align: center;
+}
+
+#gate input {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.05);
+    color: white;
+    font-size: 15px;
+    margin-top: 16px;
+}
+
+#gate button {
+    margin-top: 12px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: white;
+    color: black;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#gateError {
+    color: #ff6b6b;
+    font-size: 0.85rem;
+    margin-top: 10px;
+    min-height: 1em;
+}
+
+/* Dashboard */
+#dashboard { display: none; max-width: 900px; margin: 0 auto; }
+
+.summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.06);
+    margin-bottom: 24px;
+}
+
+.summary .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #3ddc84;
+    box-shadow: 0 0 6px #3ddc84;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+th, td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+th {
+    color: rgba(255,255,255,0.5);
+    font-weight: 500;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+td.ua {
+    color: rgba(255,255,255,0.6);
+    max-width: 340px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.empty {
+    color: rgba(255,255,255,0.4);
+    padding: 30px 0;
+}
+</style>
+</head>
+<body>
+
+<div id="gate">
+    <h1>Visitor Admin</h1>
+    <div class="subtitle">Sign in to view live visitors</div>
+    <input type="email" id="emailInput" placeholder="Email" autocomplete="username" />
+    <input type="password" id="pwInput" placeholder="Password" autocomplete="current-password" />
+    <button onclick="tryLogin()">Sign in</button>
+    <div id="gateError"></div>
+</div>
+
+<div id="dashboard">
+    <h1>Live Visitors</h1>
+    <div class="subtitle">Updates in real time • only visible to you</div>
+
+    <div class="summary">
+        <span class="dot"></span>
+        <span id="summaryText">0 people here</span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Joined</th>
+                <th>Browser / Device</th>
+            </tr>
+        </thead>
+        <tbody id="visitorRows"></tbody>
+    </table>
+    <div class="empty" id="emptyMsg" style="display:none;">No one's on the site right now.</div>
+</div>
+
+<script>
+// Same Firebase config as your main site — replace with your real values.
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT",
+};
+
+firebase.initializeApp(firebaseConfig);
+
+function tryLogin() {
+    const email = document.getElementById("emailInput").value;
+    const password = document.getElementById("pwInput").value;
+    document.getElementById("gateError").textContent = "";
+
+    firebase.auth().signInWithEmailAndPassword(email, password)
+        .catch((err) => {
+            document.getElementById("gateError").textContent = "Sign-in failed. Check your email and password.";
+        });
+}
+
+document.getElementById("pwInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") tryLogin();
+});
+
+// Firebase tells us whether we're logged in — this is the real gate.
+// The dashboard only starts listening to the database once auth is confirmed.
+firebase.auth().onAuthStateChanged((user) => {
+    if (user) {
+        document.getElementById("gate").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+        startListening();
+    } else {
+        document.getElementById("gate").style.display = "block";
+        document.getElementById("dashboard").style.display = "none";
+    }
+});
+
+function startListening() {
+    try {
+        const db = firebase.database();
+        const presenceRef = db.ref("presence");
+
+        presenceRef.off(); // avoid stacking listeners if auth state fires more than once
+
+        presenceRef.on("value", (snapshot) => {
+            const rows = document.getElementById("visitorRows");
+            const emptyMsg = document.getElementById("emptyMsg");
+            const summaryText = document.getElementById("summaryText");
+
+            rows.innerHTML = "";
+            const entries = [];
+            snapshot.forEach((child) => {
+                entries.push(child.val());
+            });
+
+            summaryText.textContent = entries.length === 1
+                ? "1 person here"
+                : `${entries.length} people here`;
+
+            emptyMsg.style.display = entries.length === 0 ? "block" : "none";
+
+            entries
+                .sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0))
+                .forEach((entry) => {
+                    const tr = document.createElement("tr");
+                    const time = entry.joinedAt
+                        ? new Date(entry.joinedAt).toLocaleTimeString()
+                        : "—";
+                    tr.innerHTML = `
+                        <td>${time}</td>
+                        <td class="ua">${(entry.userAgent || "unknown").replace(/</g, "&lt;")}</td>
+                    `;
+                    rows.appendChild(tr);
+                });
+        });
+    } catch (e) {
+        console.error("Failed to connect:", e);
+        document.getElementById("emptyMsg").textContent = "Couldn't connect — check your Firebase config.";
+        document.getElementById("emptyMsg").style.display = "block";
+    }
+}
+</script>
+
+</body>
+</html>
