@@ -155,6 +155,21 @@ td.ua {
         <tbody id="visitorRows"></tbody>
     </table>
     <div class="empty" id="emptyMsg" style="display:none;">No one's on the site right now.</div>
+
+    <h1 style="margin-top: 50px; font-size: 1.3rem;">Last Hour</h1>
+    <div class="subtitle">Everyone who visited in the past 60 minutes, including people who've left</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Joined</th>
+                <th>Left</th>
+                <th>Browser / Device</th>
+            </tr>
+        </thead>
+        <tbody id="historyRows"></tbody>
+    </table>
+    <div class="empty" id="emptyHistoryMsg" style="display:none;">No visits in the last hour.</div>
 </div>
 
 <script>
@@ -234,6 +249,44 @@ function startListening() {
                         : "—";
                     tr.innerHTML = `
                         <td>${time}</td>
+                        <td class="ua">${(entry.userAgent || "unknown").replace(/</g, "&lt;")}</td>
+                    `;
+                    rows.appendChild(tr);
+                });
+        });
+
+        // Last hour history — query visits by joinedAt, filter to last 60 min client-side
+        const historyRef = db.ref("history");
+        historyRef.off();
+        historyRef.orderByChild("joinedAt").on("value", (snapshot) => {
+            const rows = document.getElementById("historyRows");
+            const emptyMsg = document.getElementById("emptyHistoryMsg");
+            const oneHourAgo = Date.now() - 60 * 60 * 1000;
+
+            rows.innerHTML = "";
+            const entries = [];
+            snapshot.forEach((child) => {
+                const val = child.val();
+                if (val.joinedAt && val.joinedAt >= oneHourAgo) {
+                    entries.push(val);
+                }
+            });
+
+            emptyMsg.style.display = entries.length === 0 ? "block" : "none";
+
+            entries
+                .sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0))
+                .forEach((entry) => {
+                    const tr = document.createElement("tr");
+                    const joined = entry.joinedAt
+                        ? new Date(entry.joinedAt).toLocaleTimeString()
+                        : "—";
+                    const left = entry.leftAt
+                        ? new Date(entry.leftAt).toLocaleTimeString()
+                        : "still here";
+                    tr.innerHTML = `
+                        <td>${joined}</td>
+                        <td>${left}</td>
                         <td class="ua">${(entry.userAgent || "unknown").replace(/</g, "&lt;")}</td>
                     `;
                     rows.appendChild(tr);
