@@ -107,6 +107,33 @@ color: #3ddc84;
 margin-top: 10px;
 min-height: 1em;
 }
+#banStatus {
+font-size: 0.85rem;
+color: #3ddc84;
+margin-top: 10px;
+min-height: 1em;
+}
+.actionBtn {
+padding: 6px 14px;
+border-radius: 8px;
+border: none;
+font-size: 0.8rem;
+font-weight: 600;
+cursor: pointer;
+}
+.actionBtn.ban {
+background: #ff6b6b;
+color: white;
+}
+.actionBtn.unban {
+background: #3ddc84;
+color: black;
+}
+.actionBtn:disabled {
+background: rgba(255,255,255,0.1);
+color: rgba(255,255,255,0.4);
+cursor: not-allowed;
+}
 .summary {
 display: inline-flex;
 align-items: center;
@@ -184,6 +211,13 @@ padding: 30px 0;
 <button onclick="updateSiteMessage()">Update live</button>
 </div>
 <div id="msgStatus"></div>
+<h1 style="margin-top: 40px;">Ban an IP</h1>
+<div class="subtitle">Blocks that IP from loading the site</div>
+<div class="msgEditor">
+<input type="text" id="manualIpInput" placeholder="e.g. 203.0.113.4" />
+<button onclick="manualBanIp()">Ban</button>
+</div>
+<div id="banStatus"></div>
 <h1 style="margin-top: 40px;">Live Visitors</h1>
 <div class="subtitle">Updates in real time • only visible to you</div>
 <div class="summary">
@@ -197,6 +231,7 @@ padding: 30px 0;
 <th>Location</th>
 <th>VPN</th>
 <th>Browser / Device</th>
+<th>Action</th>
 </tr>
 </thead>
 <tbody id="visitorRows"></tbody>
@@ -212,6 +247,7 @@ padding: 30px 0;
 <th>Location</th>
 <th>VPN</th>
 <th>Browser / Device</th>
+<th>Action</th>
 </tr>
 </thead>
 <tbody id="historyRows"></tbody>
@@ -306,6 +342,117 @@ if (!loc || !loc.vpn || loc.vpn === "unknown") return "unknown";
 if (loc.vpn === "no") return "No";
 return `Yes (${loc.vpn})`;
 }
+function sanitizeIp(ip) {
+return ip.replace(/[.#$\[\]\/:]/g, "_");
+}
+let bannedSet = new Set();
+let lastPresenceSnapshot = null;
+let lastHistorySnapshot = null;
+function setBanStatus(msg, isError) {
+const el = document.getElementById("banStatus");
+el.style.color = isError ? "#ff6b6b" : "#3ddc84";
+el.textContent = msg;
+setTimeout(() => { el.textContent = ""; }, 3000);
+}
+function banIp(ip) {
+if (!ip) return;
+firebase.database().ref("bannedIPs/" + sanitizeIp(ip)).set(true)
+.then(() => setBanStatus(`Banned ${ip}`, false))
+.catch((err) => setBanStatus(`${err.code}: ${err.message}`, true));
+}
+function unbanIp(ip) {
+if (!ip) return;
+firebase.database().ref("bannedIPs/" + sanitizeIp(ip)).remove()
+.then(() => setBanStatus(`Unbanned ${ip}`, false))
+.catch((err) => setBanStatus(`${err.code}: ${err.message}`, true));
+}
+function manualBanIp() {
+const input = document.getElementById("manualIpInput");
+const ip = input.value.trim();
+if (!ip) {
+setBanStatus("Enter an IP address.", true);
+return;
+}
+banIp(ip);
+input.value = "";
+}
+document.getElementById("manualIpInput").addEventListener("keydown", (e) => {
+if (e.key === "Enter") manualBanIp();
+});
+function actionCell(ip) {
+if (!ip) return '<button class="actionBtn" disabled>No IP</button>';
+const banned = bannedSet.has(sanitizeIp(ip));
+if (banned) {
+return `<button class="actionBtn unban" onclick="unbanIp('${ip}')">Unban</button>`;
+}
+return `<button class="actionBtn ban" onclick="banIp('${ip}')">Ban</button>`;
+}
+function renderPresence(snapshot) {
+const rows = document.getElementById("visitorRows");
+const emptyMsg = document.getElementById("emptyMsg");
+const summaryText = document.getElementById("summaryText");
+rows.innerHTML = "";
+const entries = [];
+snapshot.forEach((child) => {
+entries.push(child.val());
+});
+summaryText.textContent = entries.length === 1
+? "1 person here"
+: `${entries.length} people here`;
+emptyMsg.style.display = entries.length === 0 ? "block" : "none";
+entries
+.sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0))
+.forEach((entry) => {
+const tr = document.createElement("tr");
+const time = entry.joinedAt
+? new Date(entry.joinedAt).toLocaleTimeString()
+: "—";
+const ip = entry.location && entry.location.ip;
+tr.innerHTML = `
+<td>${time}</td>
+<td>${formatLocation(entry.location)}</td>
+<td>${formatVpn(entry.location)}</td>
+<td class="ua">${(entry.userAgent || "unknown").replace(/</g, "&lt;")}</td>
+<td>${actionCell(ip)}</td>
+`;
+rows.appendChild(tr);
+});
+}
+function renderHistory(snapshot) {
+const rows = document.getElementById("historyRows");
+const emptyMsg = document.getElementById("emptyHistoryMsg");
+const oneHourAgo = Date.now() - 60 * 60 * 1000;
+rows.innerHTML = "";
+const entries = [];
+snapshot.forEach((child) => {
+const val = child.val();
+if (val.joinedAt && val.joinedAt >= oneHourAgo) {
+entries.push(val);
+}
+});
+emptyMsg.style.display = entries.length === 0 ? "block" : "none";
+entries
+.sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0))
+.forEach((entry) => {
+const tr = document.createElement("tr");
+const joined = entry.joinedAt
+? new Date(entry.joinedAt).toLocaleTimeString()
+: "—";
+const left = entry.leftAt
+? new Date(entry.leftAt).toLocaleTimeString()
+: "still here";
+const ip = entry.location && entry.location.ip;
+tr.innerHTML = `
+<td>${joined}</td>
+<td>${left}</td>
+<td>${formatLocation(entry.location)}</td>
+<td>${formatVpn(entry.location)}</td>
+<td class="ua">${(entry.userAgent || "unknown").replace(/</g, "&lt;")}</td>
+<td>${actionCell(ip)}</td>
+`;
+rows.appendChild(tr);
+});
+}
 function updateSiteMessage() {
 const input = document.getElementById("siteMessageInput");
 const status = document.getElementById("msgStatus");
@@ -336,71 +483,24 @@ db.ref("siteMessage").once("value").then((snapshot) => {
 const val = snapshot.val();
 document.getElementById("siteMessageInput").value = val || "Hello";
 });
+const bannedRef = db.ref("bannedIPs");
+bannedRef.off();
+bannedRef.on("value", (snapshot) => {
+bannedSet = new Set(Object.keys(snapshot.val() || {}));
+if (lastPresenceSnapshot) renderPresence(lastPresenceSnapshot);
+if (lastHistorySnapshot) renderHistory(lastHistorySnapshot);
+});
 const presenceRef = db.ref("presence");
 presenceRef.off();
 presenceRef.on("value", (snapshot) => {
-const rows = document.getElementById("visitorRows");
-const emptyMsg = document.getElementById("emptyMsg");
-const summaryText = document.getElementById("summaryText");
-rows.innerHTML = "";
-const entries = [];
-snapshot.forEach((child) => {
-entries.push(child.val());
-});
-summaryText.textContent = entries.length === 1
-? "1 person here"
-: `${entries.length} people here`;
-emptyMsg.style.display = entries.length === 0 ? "block" : "none";
-entries
-.sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0))
-.forEach((entry) => {
-const tr = document.createElement("tr");
-const time = entry.joinedAt
-? new Date(entry.joinedAt).toLocaleTimeString()
-: "—";
-tr.innerHTML = `
-<td>${time}</td>
-<td>${formatLocation(entry.location)}</td>
-<td>${formatVpn(entry.location)}</td>
-<td class="ua">${(entry.userAgent || "unknown").replace(/</g, "&lt;")}</td>
-`;
-rows.appendChild(tr);
-});
+lastPresenceSnapshot = snapshot;
+renderPresence(snapshot);
 });
 const historyRef = db.ref("history");
 historyRef.off();
 historyRef.orderByChild("joinedAt").on("value", (snapshot) => {
-const rows = document.getElementById("historyRows");
-const emptyMsg = document.getElementById("emptyHistoryMsg");
-const oneHourAgo = Date.now() - 60 * 60 * 1000;
-rows.innerHTML = "";
-const entries = [];
-snapshot.forEach((child) => {
-const val = child.val();
-if (val.joinedAt && val.joinedAt >= oneHourAgo) {
-entries.push(val);
-}
-});
-emptyMsg.style.display = entries.length === 0 ? "block" : "none";
-entries
-.sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0))
-.forEach((entry) => {
-const tr = document.createElement("tr");
-const joined = entry.joinedAt
-? new Date(entry.joinedAt).toLocaleTimeString()
-: "—";
-const left = entry.leftAt
-? new Date(entry.leftAt).toLocaleTimeString()
-: "still here";
-tr.innerHTML = `
-<td>${joined}</td>
-<td>${left}</td>
-<td>${formatLocation(entry.location)}</td>
-<td>${formatVpn(entry.location)}</td>
-<td class="ua">${(entry.userAgent || "unknown").replace(/</g, "&lt;")}</td>
-`;
-rows.appendChild(tr);
-});
+lastHistorySnapshot = snapshot;
+renderHistory(snapshot);
 });
 } catch (e) {
 console.error("Failed to connect:", e);
