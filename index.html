@@ -77,6 +77,36 @@ color: white;
 }
 /* Dashboard */
 #dashboard { display: none; max-width: 900px; margin: 0 auto; }
+.msgEditor {
+display: flex;
+gap: 10px;
+max-width: 480px;
+}
+.msgEditor input {
+flex: 1;
+padding: 12px 16px;
+border-radius: 10px;
+border: 1px solid rgba(255,255,255,0.2);
+background: rgba(255,255,255,0.05);
+color: white;
+font-size: 15px;
+}
+.msgEditor button {
+padding: 12px 20px;
+border-radius: 10px;
+border: none;
+background: white;
+color: black;
+font-weight: 600;
+cursor: pointer;
+white-space: nowrap;
+}
+#msgStatus {
+font-size: 0.85rem;
+color: #3ddc84;
+margin-top: 10px;
+min-height: 1em;
+}
 .summary {
 display: inline-flex;
 align-items: center;
@@ -147,7 +177,14 @@ padding: 30px 0;
 </div>
 </div>
 <div id="dashboard">
-<h1>Live Visitors</h1>
+<h1>Site Message</h1>
+<div class="subtitle">Changes what everyone sees live on the site</div>
+<div class="msgEditor">
+<input type="text" id="siteMessageInput" placeholder="Hello" maxlength="60" />
+<button onclick="updateSiteMessage()">Update live</button>
+</div>
+<div id="msgStatus"></div>
+<h1 style="margin-top: 40px;">Live Visitors</h1>
 <div class="subtitle">Updates in real time • only visible to you</div>
 <div class="summary">
 <span class="dot"></span>
@@ -262,11 +299,38 @@ const parts = [loc.city, loc.region, loc.country].filter(
 );
 return parts.length ? parts.join(", ") : "unknown";
 }
+function updateSiteMessage() {
+const input = document.getElementById("siteMessageInput");
+const status = document.getElementById("msgStatus");
+const value = input.value.trim();
+if (!value) {
+status.style.color = "#ff6b6b";
+status.textContent = "Message can't be empty.";
+return;
+}
+firebase.database().ref("siteMessage").set(value)
+.then(() => {
+status.style.color = "#3ddc84";
+status.textContent = "Updated — live on the site now.";
+setTimeout(() => { status.textContent = ""; }, 3000);
+})
+.catch((err) => {
+status.style.color = "#ff6b6b";
+status.textContent = `${err.code}: ${err.message}`;
+});
+}
+document.getElementById("siteMessageInput").addEventListener("keydown", (e) => {
+if (e.key === "Enter") updateSiteMessage();
+});
 function startListening() {
 try {
 const db = firebase.database();
+db.ref("siteMessage").once("value").then((snapshot) => {
+const val = snapshot.val();
+document.getElementById("siteMessageInput").value = val || "Hello";
+});
 const presenceRef = db.ref("presence");
-presenceRef.off(); // avoid stacking listeners if auth state fires more than once
+presenceRef.off();
 presenceRef.on("value", (snapshot) => {
 const rows = document.getElementById("visitorRows");
 const emptyMsg = document.getElementById("emptyMsg");
