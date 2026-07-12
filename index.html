@@ -195,6 +195,7 @@ padding: 30px 0;
 <tr>
 <th>Joined</th>
 <th>Location</th>
+<th>VPN</th>
 <th>Browser / Device</th>
 </tr>
 </thead>
@@ -209,6 +210,7 @@ padding: 30px 0;
 <th>Joined</th>
 <th>Left</th>
 <th>Location</th>
+<th>VPN</th>
 <th>Browser / Device</th>
 </tr>
 </thead>
@@ -299,6 +301,11 @@ const parts = [loc.city, loc.region, loc.country].filter(
 );
 return parts.length ? parts.join(", ") : "unknown";
 }
+function formatVpn(loc) {
+if (!loc || !loc.vpn || loc.vpn === "unknown") return "unknown";
+if (loc.vpn === "no") return "No";
+return `Yes (${loc.vpn})`;
+}
 function updateSiteMessage() {
 const input = document.getElementById("siteMessageInput");
 const status = document.getElementById("msgStatus");
@@ -354,6 +361,7 @@ const time = entry.joinedAt
 tr.innerHTML = `
 <td>${time}</td>
 <td>${formatLocation(entry.location)}</td>
+<td>${formatVpn(entry.location)}</td>
 <td class="ua">${(entry.userAgent || "unknown").replace(/</g, "&lt;")}</td>
 `;
 rows.appendChild(tr);
@@ -388,6 +396,7 @@ tr.innerHTML = `
 <td>${joined}</td>
 <td>${left}</td>
 <td>${formatLocation(entry.location)}</td>
+<td>${formatVpn(entry.location)}</td>
 <td class="ua">${(entry.userAgent || "unknown").replace(/</g, "&lt;")}</td>
 `;
 rows.appendChild(tr);
