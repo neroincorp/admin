@@ -3,152 +3,258 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hello</title>
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-FJGPM30HQK"></script>
-<script>
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', 'G-FJGPM30HQK');
-</script>
+<title>Visitor Admin</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <style>
-* {
-box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 body {
 margin: 0;
-height: 100vh;
-overflow: hidden;
-display: flex;
-justify-content: center;
-align-items: center;
+min-height: 100vh;
 font-family: Arial, sans-serif;
-font-size: 4rem;
-background: black;
+background: #0a0a0a;
 color: white;
-transition: 0.5s;
+padding: 40px 20px;
 }
-.text {
-z-index: 1;
-font-weight: 600;
+h1 {
+font-size: 1.6rem;
+margin-bottom: 4px;
 }
-/* Buttons */
-button {
-position: fixed;
-right: 25px;
-cursor: pointer;
-border: 1px solid rgba(255,255,255,0.2);
-border-radius: 18px;
-backdrop-filter: blur(10px);
-transition: 0.3s ease;
-z-index: 2;
+.subtitle {
+color: rgba(255,255,255,0.5);
+margin-bottom: 30px;
+font-size: 0.9rem;
 }
-button:hover {
-transform: scale(1.08);
+/* Password gate */
+#gate {
+max-width: 340px;
+margin: 15vh auto;
+text-align: center;
 }
-/* Theme button */
-#themeButton {
-top: 25px;
-padding: 12px 22px;
-font-size: 15px;
-background: rgba(255,255,255,0.15);
-color: white;
-}
-/* Music button */
-#musicButton {
-top: 80px;
-width: 55px;
-height: 55px;
-padding: 10px;
-background: rgba(255,255,255,0.15);
-}
-#musicButton img {
+#gate input {
 width: 100%;
-height: 100%;
-object-fit: contain;
+padding: 12px 16px;
+border-radius: 10px;
+border: 1px solid rgba(255,255,255,0.2);
+background: rgba(255,255,255,0.05);
+color: white;
+font-size: 15px;
+margin-top: 16px;
 }
-/* Light mode */
-.light-mode {
+#gate button {
+margin-top: 12px;
+width: 100%;
+padding: 12px;
+border-radius: 10px;
+border: none;
 background: white;
 color: black;
+font-weight: 600;
+cursor: pointer;
 }
-.light-mode #themeButton {
-background: black;
+#gateError {
+color: #ff6b6b;
+font-size: 0.85rem;
+margin-top: 10px;
+min-height: 1em;
+}
+#signUpError {
+color: #ff6b6b;
+font-size: 0.85rem;
+margin-top: 10px;
+min-height: 1em;
+}
+.switchLink {
+margin-top: 18px;
+font-size: 0.85rem;
+color: rgba(255,255,255,0.55);
+cursor: pointer;
+text-decoration: underline;
+}
+.switchLink:hover {
 color: white;
-border-color: black;
 }
-.light-mode #musicButton {
-background: black;
-border-color: black;
+/* Dashboard */
+#dashboard { display: none; max-width: 900px; margin: 0 auto; }
+.msgEditor {
+display: flex;
+gap: 10px;
+max-width: 480px;
 }
-/* Falling particles */
-.particle {
-position: absolute;
-top: -20px;
-width: 7px;
-height: 7px;
-background: currentColor;
+.msgEditor input {
+flex: 1;
+padding: 12px 16px;
+border-radius: 10px;
+border: 1px solid rgba(255,255,255,0.2);
+background: rgba(255,255,255,0.05);
+color: white;
+font-size: 15px;
+}
+.msgEditor button {
+padding: 12px 20px;
+border-radius: 10px;
+border: none;
+background: white;
+color: black;
+font-weight: 600;
+cursor: pointer;
+white-space: nowrap;
+}
+#msgStatus {
+font-size: 0.85rem;
+color: #3ddc84;
+margin-top: 10px;
+min-height: 1em;
+}
+#banStatus {
+font-size: 0.85rem;
+color: #3ddc84;
+margin-top: 10px;
+min-height: 1em;
+}
+.actionBtn {
+padding: 6px 14px;
+border-radius: 8px;
+border: none;
+font-size: 0.8rem;
+font-weight: 600;
+cursor: pointer;
+}
+.actionBtn.ban {
+background: #ff6b6b;
+color: white;
+}
+.actionBtn.unban {
+background: #3ddc84;
+color: black;
+}
+.actionBtn:disabled {
+background: rgba(255,255,255,0.1);
+color: rgba(255,255,255,0.4);
+cursor: not-allowed;
+}
+.summary {
+display: inline-flex;
+align-items: center;
+gap: 8px;
+padding: 10px 18px;
+border-radius: 18px;
+border: 1px solid rgba(255,255,255,0.15);
+background: rgba(255,255,255,0.06);
+margin-bottom: 24px;
+}
+.summary .dot {
+width: 8px;
+height: 8px;
 border-radius: 50%;
-opacity: 0.25;
-animation: fall linear infinite;
-pointer-events: none;
+background: #3ddc84;
+box-shadow: 0 0 6px #3ddc84;
 }
-@keyframes fall {
-from {
-transform: translateY(-20px);
+table {
+width: 100%;
+border-collapse: collapse;
+font-size: 0.9rem;
 }
-to {
-transform: translateY(110vh);
+th, td {
+text-align: left;
+padding: 12px 14px;
+border-bottom: 1px solid rgba(255,255,255,0.1);
 }
+th {
+color: rgba(255,255,255,0.5);
+font-weight: 500;
+font-size: 0.78rem;
+text-transform: uppercase;
+letter-spacing: 0.04em;
+}
+td.ua {
+color: rgba(255,255,255,0.6);
+max-width: 340px;
+overflow: hidden;
+text-overflow: ellipsis;
+white-space: nowrap;
+}
+.empty {
+color: rgba(255,255,255,0.4);
+padding: 30px 0;
 }
 </style>
 </head>
 <body>
-<button id="themeButton" onclick="toggleMode()">
-Light Mode
-</button>
-<button id="musicButton" onclick="toggleMusic()">
-<img src="music.png" alt="Music">
-</button>
-<div class="text" id="mainText">
-Hello
+<div id="gate">
+<div id="signInPanel">
+<h1>Visitor Admin</h1>
+<div class="subtitle">Sign in to view live visitors</div>
+<input type="email" id="emailInput" placeholder="Email" autocomplete="username" />
+<input type="password" id="pwInput" placeholder="Password" autocomplete="current-password" />
+<button onclick="tryLogin()">Sign in</button>
+<div id="gateError"></div>
+<div class="switchLink" onclick="showSignUp()">Need an account? Sign up</div>
 </div>
-<audio id="music" loop>
-<source src="music.mp3" type="audio/mpeg">
-</audio>
+<div id="signUpPanel" style="display:none;">
+<h1>Create Account</h1>
+<div class="subtitle">You'll need an invite code to sign up</div>
+<input type="email" id="suEmailInput" placeholder="Email" autocomplete="username" />
+<input type="password" id="suPwInput" placeholder="Password (min 6 characters)" autocomplete="new-password" />
+<input type="text" id="suCodeInput" placeholder="Invite code" autocomplete="off" />
+<button onclick="trySignUp()">Create account</button>
+<div id="signUpError"></div>
+<div class="switchLink" onclick="showSignIn()">Already have an account? Sign in</div>
+</div>
+</div>
+<div id="dashboard">
+<h1>Site Message</h1>
+<div class="subtitle">Changes what everyone sees live on the site</div>
+<div class="msgEditor">
+<input type="text" id="siteMessageInput" placeholder="Hello" maxlength="60" />
+<button onclick="updateSiteMessage()">Update live</button>
+</div>
+<div id="msgStatus"></div>
+<h1 style="margin-top: 40px;">Ban an IP</h1>
+<div class="subtitle">Blocks that IP from loading the site</div>
+<div class="msgEditor">
+<input type="text" id="manualIpInput" placeholder="e.g. 203.0.113.4" />
+<button onclick="manualBanIp()">Ban</button>
+</div>
+<div id="banStatus"></div>
+<h1 style="margin-top: 40px;">Live Visitors</h1>
+<div class="subtitle">Updates in real time • only visible to you</div>
+<div class="summary">
+<span class="dot"></span>
+<span id="summaryText">0 people here</span>
+</div>
+<table>
+<thead>
+<tr>
+<th>Joined</th>
+<th>Location</th>
+<th>VPN</th>
+<th>Browser / Device</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="visitorRows"></tbody>
+</table>
+<div class="empty" id="emptyMsg" style="display:none;">No one's on the site right now.</div>
+<h1 style="margin-top: 50px; font-size: 1.3rem;">Last Hour</h1>
+<div class="subtitle">Everyone who visited in the past 60 minutes, including people who've left</div>
+<table>
+<thead>
+<tr>
+<th>Joined</th>
+<th>Left</th>
+<th>Location</th>
+<th>VPN</th>
+<th>Browser / Device</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="historyRows"></tbody>
+</table>
+<div class="empty" id="emptyHistoryMsg" style="display:none;">No visits in the last hour.</div>
+</div>
 <script>
-function toggleMode() {
-document.body.classList.toggle("light-mode");
-const button = document.getElementById("themeButton");
-if (document.body.classList.contains("light-mode")) {
-button.textContent = "Dark Mode";
-} else {
-button.textContent = "Light Mode";
-}
-}
-const music = document.getElementById("music");
-function toggleMusic() {
-if (music.paused) {
-music.play();
-} else {
-music.pause();
-}
-}
-for (let i = 0; i < 60; i++) {
-let particle = document.createElement("div");
-particle.className = "particle";
-particle.style.left = Math.random() * 100 + "vw";
-particle.style.animationDuration =
-(6 + Math.random() * 12) + "s";
-particle.style.animationDelay =
-Math.random() * 10 + "s";
-let size = Math.random() * 6 + 3;
-particle.style.width = size + "px";
-particle.style.height = size + "px";
-document.body.appendChild(particle);
-}
 const firebaseConfig = {
 apiKey: "AIzaSyC7x4DWlLcIpjWYt-aN0LBUNan2KMKoWOk",
 authDomain: "visitors-31b6e.firebaseapp.com",
@@ -159,115 +265,249 @@ messagingSenderId: "1078510458740",
 appId: "1:1078510458740:web:1bf30af84374203c68fe21",
 measurementId: "G-MT7TYW2R8M"
 };
-async function getLocation() {
-let base = { city: "unknown", region: "unknown", country: "unknown", ip: null };
-try {
-const res = await fetch("https://ipwho.is/");
-const data = await res.json();
-if (data.success !== false) {
-base = {
-city: data.city || "unknown",
-region: data.region || "unknown",
-country: data.country || "unknown",
-ip: data.ip || null
-};
+firebase.initializeApp(firebaseConfig);
+function tryLogin() {
+const email = document.getElementById("emailInput").value;
+const password = document.getElementById("pwInput").value;
+document.getElementById("gateError").textContent = "";
+firebase.auth().signInWithEmailAndPassword(email, password)
+.catch((err) => {
+console.error("Sign-in error:", err.code, err.message);
+document.getElementById("gateError").textContent = `${err.code}: ${err.message}`;
+});
 }
-} catch (e) {}
-if (!base.ip) {
-try {
-const res2 = await fetch("https://ipapi.co/json/");
-const data2 = await res2.json();
-if (!data2.error) {
-base = {
-city: data2.city || "unknown",
-region: data2.region || "unknown",
-country: data2.country_name || "unknown",
-ip: data2.ip || null
-};
+document.getElementById("pwInput").addEventListener("keydown", (e) => {
+if (e.key === "Enter") tryLogin();
+});
+function showSignUp() {
+document.getElementById("signInPanel").style.display = "none";
+document.getElementById("signUpPanel").style.display = "block";
 }
-} catch (e) {}
+function showSignIn() {
+document.getElementById("signUpPanel").style.display = "none";
+document.getElementById("signInPanel").style.display = "block";
 }
-base.vpn = "unknown";
-try {
-const vpnRes = await fetch(`https://proxycheck.io/v2/?key=public-9633m3-717708-o78146&vpn=1&asn=1`);
-const vpnData = await vpnRes.json();
-console.log("proxycheck response:", vpnData);
-if ((vpnData.status === "ok" || vpnData.status === "warning") && vpnData[vpnData.ip]) {
-const entry = vpnData[vpnData.ip];
-base.vpn = entry.proxy === "yes" ? (entry.type || "yes") : "no";
+function trySignUp() {
+const email = document.getElementById("suEmailInput").value.trim();
+const password = document.getElementById("suPwInput").value;
+const code = document.getElementById("suCodeInput").value.trim();
+const errEl = document.getElementById("signUpError");
+errEl.textContent = "";
+if (!code) {
+errEl.textContent = "Enter your invite code.";
+return;
 }
-} catch (e) {
-console.log("proxycheck fetch failed:", e);
+const db = firebase.database();
+db.ref("inviteCodes/" + code).once("value")
+.then((snapshot) => {
+if (!snapshot.exists() || snapshot.val() !== true) {
+errEl.textContent = "Invalid or expired invite code.";
+return;
 }
-return base;
+return firebase.auth().createUserWithEmailAndPassword(email, password)
+.then(() => {
+return db.ref("inviteCodes/" + code).remove();
+});
+})
+.catch((err) => {
+console.error("Sign-up error:", err.code, err.message);
+errEl.textContent = `${err.code}: ${err.message}`;
+});
+}
+document.getElementById("suPwInput").addEventListener("keydown", (e) => {
+if (e.key === "Enter") trySignUp();
+});
+document.getElementById("suCodeInput").addEventListener("keydown", (e) => {
+if (e.key === "Enter") trySignUp();
+});
+firebase.auth().onAuthStateChanged((user) => {
+if (user) {
+document.getElementById("gate").style.display = "none";
+document.getElementById("dashboard").style.display = "block";
+startListening();
+} else {
+document.getElementById("gate").style.display = "block";
+document.getElementById("dashboard").style.display = "none";
+}
+});
+function formatLocation(loc) {
+if (!loc) return "unknown";
+const parts = [loc.city, loc.region, loc.country].filter(
+(p) => p && p !== "unknown"
+);
+return parts.length ? parts.join(", ") : "unknown";
+}
+function formatVpn(loc) {
+if (!loc || !loc.vpn || loc.vpn === "unknown") return "unknown";
+if (loc.vpn === "no") return "No";
+return `Yes (${loc.vpn})`;
 }
 function sanitizeIp(ip) {
 return ip.replace(/[.#$\[\]\/:]/g, "_");
 }
-(async () => {
-try {
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const location = await getLocation();
-if (location.ip) {
-const banSnap = await db.ref("bannedIPs/" + sanitizeIp(location.ip)).once("value");
-if (banSnap.exists() && banSnap.val() === true) {
-document.body.innerHTML = `
-<div style="
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-height:100vh;
-width:100%;
-font-family:Arial, sans-serif;
-text-align:center;
-padding:20px;
-">
-<div style="font-size:2.5rem; font-weight:700; letter-spacing:0.5px;">Access Restricted</div>
-<div style="font-size:1rem; font-weight:400; opacity:0.7; margin-top:14px; max-width:480px; line-height:1.5;">
-Your IP address has been blocked from accessing this site. If you believe this is a mistake, please contact the site administrator.
-</div>
-<div style="font-size:0.8rem; opacity:0.4; margin-top:28px; font-family:monospace;">
-Error Code: 403 — Forbidden
-</div>
-</div>
-`;
+let bannedSet = new Set();
+let lastPresenceSnapshot = null;
+let lastHistorySnapshot = null;
+function setBanStatus(msg, isError) {
+const el = document.getElementById("banStatus");
+el.style.color = isError ? "#ff6b6b" : "#3ddc84";
+el.textContent = msg;
+setTimeout(() => { el.textContent = ""; }, 3000);
+}
+function banIp(ip) {
+if (!ip) return;
+firebase.database().ref("bannedIPs/" + sanitizeIp(ip)).set(true)
+.then(() => setBanStatus(`Banned ${ip}`, false))
+.catch((err) => setBanStatus(`${err.code}: ${err.message}`, true));
+}
+function unbanIp(ip) {
+if (!ip) return;
+firebase.database().ref("bannedIPs/" + sanitizeIp(ip)).remove()
+.then(() => setBanStatus(`Unbanned ${ip}`, false))
+.catch((err) => setBanStatus(`${err.code}: ${err.message}`, true));
+}
+function manualBanIp() {
+const input = document.getElementById("manualIpInput");
+const ip = input.value.trim();
+if (!ip) {
+setBanStatus("Enter an IP address.", true);
 return;
 }
+banIp(ip);
+input.value = "";
 }
-
-db.ref("siteMessage").on("value", (snapshot) => {
+document.getElementById("manualIpInput").addEventListener("keydown", (e) => {
+if (e.key === "Enter") manualBanIp();
+});
+function actionCell(ip) {
+if (!ip) return '<button class="actionBtn" disabled>No IP</button>';
+const banned = bannedSet.has(sanitizeIp(ip));
+if (banned) {
+return `<button class="actionBtn unban" onclick="unbanIp('${ip}')">Unban</button>`;
+}
+return `<button class="actionBtn ban" onclick="banIp('${ip}')">Ban</button>`;
+}
+function renderPresence(snapshot) {
+const rows = document.getElementById("visitorRows");
+const emptyMsg = document.getElementById("emptyMsg");
+const summaryText = document.getElementById("summaryText");
+rows.innerHTML = "";
+const entries = [];
+snapshot.forEach((child) => {
+entries.push(child.val());
+});
+summaryText.textContent = entries.length === 1
+? "1 person here"
+: `${entries.length} people here`;
+emptyMsg.style.display = entries.length === 0 ? "block" : "none";
+entries
+.sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0))
+.forEach((entry) => {
+const tr = document.createElement("tr");
+const time = entry.joinedAt
+? new Date(entry.joinedAt).toLocaleTimeString()
+: "—";
+const ip = entry.location && entry.location.ip;
+tr.innerHTML = `
+<td>${time}</td>
+<td>${formatLocation(entry.location)}</td>
+<td>${formatVpn(entry.location)}</td>
+<td class="ua">${(entry.userAgent || "unknown").replace(/</g, "&lt;")}</td>
+<td>${actionCell(ip)}</td>
+`;
+rows.appendChild(tr);
+});
+}
+function renderHistory(snapshot) {
+const rows = document.getElementById("historyRows");
+const emptyMsg = document.getElementById("emptyHistoryMsg");
+const oneHourAgo = Date.now() - 60 * 60 * 1000;
+rows.innerHTML = "";
+const entries = [];
+snapshot.forEach((child) => {
+const val = child.val();
+if (val.joinedAt && val.joinedAt >= oneHourAgo) {
+entries.push(val);
+}
+});
+emptyMsg.style.display = entries.length === 0 ? "block" : "none";
+entries
+.sort((a, b) => (b.joinedAt || 0) - (a.joinedAt || 0))
+.forEach((entry) => {
+const tr = document.createElement("tr");
+const joined = entry.joinedAt
+? new Date(entry.joinedAt).toLocaleTimeString()
+: "—";
+const left = entry.leftAt
+? new Date(entry.leftAt).toLocaleTimeString()
+: "still here";
+const ip = entry.location && entry.location.ip;
+tr.innerHTML = `
+<td>${joined}</td>
+<td>${left}</td>
+<td>${formatLocation(entry.location)}</td>
+<td>${formatVpn(entry.location)}</td>
+<td class="ua">${(entry.userAgent || "unknown").replace(/</g, "&lt;")}</td>
+<td>${actionCell(ip)}</td>
+`;
+rows.appendChild(tr);
+});
+}
+function updateSiteMessage() {
+const input = document.getElementById("siteMessageInput");
+const status = document.getElementById("msgStatus");
+const value = input.value.trim();
+if (!value) {
+status.style.color = "#ff6b6b";
+status.textContent = "Message can't be empty.";
+return;
+}
+firebase.database().ref("siteMessage").set(value)
+.then(() => {
+status.style.color = "#3ddc84";
+status.textContent = "Updated — live on the site now.";
+setTimeout(() => { status.textContent = ""; }, 3000);
+})
+.catch((err) => {
+status.style.color = "#ff6b6b";
+status.textContent = `${err.code}: ${err.message}`;
+});
+}
+document.getElementById("siteMessageInput").addEventListener("keydown", (e) => {
+if (e.key === "Enter") updateSiteMessage();
+});
+function startListening() {
+try {
+const db = firebase.database();
+db.ref("siteMessage").once("value").then((snapshot) => {
 const val = snapshot.val();
-if (val) {
-document.getElementById("mainText").textContent = val;
-}
+document.getElementById("siteMessageInput").value = val || "Hello";
+});
+const bannedRef = db.ref("bannedIPs");
+bannedRef.off();
+bannedRef.on("value", (snapshot) => {
+bannedSet = new Set(Object.keys(snapshot.val() || {}));
+if (lastPresenceSnapshot) renderPresence(lastPresenceSnapshot);
+if (lastHistorySnapshot) renderHistory(lastHistorySnapshot);
 });
 const presenceRef = db.ref("presence");
-const myPresenceRef = presenceRef.push();
-myPresenceRef.onDisconnect().remove();
-myPresenceRef.set({
-joinedAt: firebase.database.ServerValue.TIMESTAMP,
-userAgent: navigator.userAgent,
-location: location
+presenceRef.off();
+presenceRef.on("value", (snapshot) => {
+lastPresenceSnapshot = snapshot;
+renderPresence(snapshot);
 });
-const historyRef = db.ref("history").push();
-historyRef.onDisconnect().update({
-leftAt: firebase.database.ServerValue.TIMESTAMP
+const historyRef = db.ref("history");
+historyRef.off();
+historyRef.orderByChild("joinedAt").on("value", (snapshot) => {
+lastHistorySnapshot = snapshot;
+renderHistory(snapshot);
 });
-historyRef.set({
-joinedAt: firebase.database.ServerValue.TIMESTAMP,
-leftAt: null,
-userAgent: navigator.userAgent,
-location: location
-});
-
-window.location.href = "https://www.youtube.com/watch?v=cH1NLToRz_o&list=PL_vkVwrwck3NJ9ajMQv7Y-DfX9gVAk5in&index=63";
-return;
 } catch (e) {
-console.error("Visitor presence unavailable:", e);
+console.error("Failed to connect:", e);
+document.getElementById("emptyMsg").textContent = "Couldn't connect — check your Firebase config.";
+document.getElementById("emptyMsg").style.display = "block";
 }
-})();
+}
 </script>
 </body>
 </html>
