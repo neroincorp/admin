@@ -59,6 +59,22 @@ font-size: 0.85rem;
 margin-top: 10px;
 min-height: 1em;
 }
+#signUpError {
+color: #ff6b6b;
+font-size: 0.85rem;
+margin-top: 10px;
+min-height: 1em;
+}
+.switchLink {
+margin-top: 18px;
+font-size: 0.85rem;
+color: rgba(255,255,255,0.55);
+cursor: pointer;
+text-decoration: underline;
+}
+.switchLink:hover {
+color: white;
+}
 /* Dashboard */
 #dashboard { display: none; max-width: 900px; margin: 0 auto; }
 .summary {
@@ -110,12 +126,25 @@ padding: 30px 0;
 </head>
 <body>
 <div id="gate">
+<div id="signInPanel">
 <h1>Visitor Admin</h1>
 <div class="subtitle">Sign in to view live visitors</div>
 <input type="email" id="emailInput" placeholder="Email" autocomplete="username" />
 <input type="password" id="pwInput" placeholder="Password" autocomplete="current-password" />
 <button onclick="tryLogin()">Sign in</button>
 <div id="gateError"></div>
+<div class="switchLink" onclick="showSignUp()">Need an account? Sign up</div>
+</div>
+<div id="signUpPanel" style="display:none;">
+<h1>Create Account</h1>
+<div class="subtitle">You'll need an invite code to sign up</div>
+<input type="email" id="suEmailInput" placeholder="Email" autocomplete="username" />
+<input type="password" id="suPwInput" placeholder="Password (min 6 characters)" autocomplete="new-password" />
+<input type="text" id="suCodeInput" placeholder="Invite code" autocomplete="off" />
+<button onclick="trySignUp()">Create account</button>
+<div id="signUpError"></div>
+<div class="switchLink" onclick="showSignIn()">Already have an account? Sign in</div>
+</div>
 </div>
 <div id="dashboard">
 <h1>Live Visitors</h1>
@@ -174,6 +203,47 @@ document.getElementById("gateError").textContent = `${err.code}: ${err.message}`
 }
 document.getElementById("pwInput").addEventListener("keydown", (e) => {
 if (e.key === "Enter") tryLogin();
+});
+function showSignUp() {
+document.getElementById("signInPanel").style.display = "none";
+document.getElementById("signUpPanel").style.display = "block";
+}
+function showSignIn() {
+document.getElementById("signUpPanel").style.display = "none";
+document.getElementById("signInPanel").style.display = "block";
+}
+function trySignUp() {
+const email = document.getElementById("suEmailInput").value.trim();
+const password = document.getElementById("suPwInput").value;
+const code = document.getElementById("suCodeInput").value.trim();
+const errEl = document.getElementById("signUpError");
+errEl.textContent = "";
+if (!code) {
+errEl.textContent = "Enter your invite code.";
+return;
+}
+const db = firebase.database();
+db.ref("inviteCodes/" + code).once("value")
+.then((snapshot) => {
+if (!snapshot.exists() || snapshot.val() !== true) {
+errEl.textContent = "Invalid or expired invite code.";
+return;
+}
+return firebase.auth().createUserWithEmailAndPassword(email, password)
+.then(() => {
+return db.ref("inviteCodes/" + code).remove();
+});
+})
+.catch((err) => {
+console.error("Sign-up error:", err.code, err.message);
+errEl.textContent = `${err.code}: ${err.message}`;
+});
+}
+document.getElementById("suPwInput").addEventListener("keydown", (e) => {
+if (e.key === "Enter") trySignUp();
+});
+document.getElementById("suCodeInput").addEventListener("keydown", (e) => {
+if (e.key === "Enter") trySignUp();
 });
 firebase.auth().onAuthStateChanged((user) => {
 if (user) {
